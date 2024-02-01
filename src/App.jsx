@@ -10,13 +10,10 @@ import { useEffect } from "react";
 
 function App() {
   const selectedPlace = useRef();
-
   const [userPlaces, setUserPlaces] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState();
-
   const [errorUpdatingPlaces, setErrorUpdatingPlaces] = useState();
-
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
   useEffect(() => {
@@ -24,15 +21,13 @@ function App() {
       setIsFetching(true);
       try {
         const places = await fetchUserPlaces();
-        console.log(places);
         setUserPlaces(places);
       } catch (error) {
         setError({
           message: error.message || "Failed to fetch user places",
         });
-      } finally {
-        setIsFetching(false);
       }
+      setIsFetching(false);
     }
 
     fetchPlaces();
@@ -49,10 +44,20 @@ function App() {
 
   async function handleSelectPlace(selectedPlace) {
     try {
+      // Check if the place is already selected
+      if (isPlaceAlreadySelected(selectedPlace)) {
+        console.log("Place already selected");
+        return;
+      }
+
       const updatedPlaces = [selectedPlace, ...userPlaces];
-      await updateUserPlaces(updatedPlaces);
-      setUserPlaces(updatedPlaces);
+      // Sort places based on distance
+      const sortedPlaces = sortPlacesByDistance(updatedPlaces);
+
+      setUserPlaces(sortedPlaces);
+      await updateUserPlaces(sortedPlaces);
     } catch (error) {
+      setUserPlaces(userPlaces);
       setErrorUpdatingPlaces({
         message:
           error.message || "Could not update places, please try again later",
@@ -60,25 +65,47 @@ function App() {
     }
   }
 
+  const sortPlacesByDistance = (places) => {
+    // Assuming sortPlacesByDistance is your existing sorting function
+    // Replace this with your actual sorting logic
+    return places.sort((a, b) => {
+      // Call your existing sorting function here
+      // Replace the following line with your sorting logic
+      return a.distance - b.distance;
+    });
+  };
+
+  const isPlaceAlreadySelected = (place) => {
+    return userPlaces.some((selectedPlace) => selectedPlace.id === place.id);
+  };
+
   const handleRemovePlace = useCallback(
     async function handleRemovePlace() {
-      try {
-        const updatedPlaces = userPlaces.filter(
+      setUserPlaces((prevPickedPlaces) =>
+        prevPickedPlaces.filter(
           (place) => place.id !== selectedPlace.current.id
+        )
+      );
+
+      try {
+        await updateUserPlaces(
+          userPlaces.filter((place) => place.id !== selectedPlace.current.id)
         );
-        await updateUserPlaces(updatedPlaces);
-        setUserPlaces(updatedPlaces);
-        setModalIsOpen(false);
       } catch (error) {
+        setUserPlaces(userPlaces);
         setErrorUpdatingPlaces({
           message: error.message || "Failed to delete a place",
         });
       }
+
+      setModalIsOpen(false);
     },
     [userPlaces]
   );
 
-  function handleError() {}
+  function handleError() {
+    setErrorUpdatingPlaces(null);
+  }
 
   return (
     <>

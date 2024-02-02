@@ -1,19 +1,22 @@
-import { useRef, useState, useCallback } from "react";
-import Places from "./components/Places.jsx";
-import Modal from "./components/Modal.jsx";
-import DeleteConfirmation from "./components/DeleteConfirmation.jsx";
-import logoImg from "./assets/logo.png";
-import AvailablePlaces from "./components/AvailablePlaces.jsx";
-import { fetchUserPlaces, updateUserPlaces } from "./http.js";
-import Error from "./components/Error.jsx";
-import { useEffect } from "react";
+import { useRef, useState, useCallback, useEffect } from 'react';
+
+import Places from './components/Places.jsx';
+import Modal from './components/Modal.jsx';
+import DeleteConfirmation from './components/DeleteConfirmation.jsx';
+import logoImg from './assets/logo.png';
+import AvailablePlaces from './components/AvailablePlaces.jsx';
+import { fetchUserPlaces, updateUserPlaces } from './http.js';
+import Error from './components/Error.jsx';
 
 function App() {
   const selectedPlace = useRef();
+
   const [userPlaces, setUserPlaces] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState();
+
   const [errorUpdatingPlaces, setErrorUpdatingPlaces] = useState();
+
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
   useEffect(() => {
@@ -23,10 +26,9 @@ function App() {
         const places = await fetchUserPlaces();
         setUserPlaces(places);
       } catch (error) {
-        setError({
-          message: error.message || "Failed to fetch user places",
-        });
+        setError({ message: error.message || 'Failed to fetch user places.' });
       }
+
       setIsFetching(false);
     }
 
@@ -43,41 +45,27 @@ function App() {
   }
 
   async function handleSelectPlace(selectedPlace) {
-    try {
-      // Check if the place is already selected
-      if (isPlaceAlreadySelected(selectedPlace)) {
-        console.log("Place already selected");
-        return;
+    // await updateUserPlaces([selectedPlace, ...userPlaces]);
+
+    setUserPlaces((prevPickedPlaces) => {
+      if (!prevPickedPlaces) {
+        prevPickedPlaces = [];
       }
+      if (prevPickedPlaces.some((place) => place.id === selectedPlace.id)) {
+        return prevPickedPlaces;
+      }
+      return [selectedPlace, ...prevPickedPlaces];
+    });
 
-      const updatedPlaces = [selectedPlace, ...userPlaces];
-      // Sort places based on distance
-      const sortedPlaces = sortPlacesByDistance(updatedPlaces);
-
-      setUserPlaces(sortedPlaces);
-      await updateUserPlaces(sortedPlaces);
+    try {
+      await updateUserPlaces([selectedPlace, ...userPlaces]);
     } catch (error) {
       setUserPlaces(userPlaces);
       setErrorUpdatingPlaces({
-        message:
-          error.message || "Could not update places, please try again later",
+        message: error.message || 'Failed to update places.',
       });
     }
   }
-
-  const sortPlacesByDistance = (places) => {
-    // Assuming sortPlacesByDistance is your existing sorting function
-    // Replace this with your actual sorting logic
-    return places.sort((a, b) => {
-      // Call your existing sorting function here
-      // Replace the following line with your sorting logic
-      return a.distance - b.distance;
-    });
-  };
-
-  const isPlaceAlreadySelected = (place) => {
-    return userPlaces.some((selectedPlace) => selectedPlace.id === place.id);
-  };
 
   const handleRemovePlace = useCallback(
     async function handleRemovePlace() {
@@ -94,7 +82,7 @@ function App() {
       } catch (error) {
         setUserPlaces(userPlaces);
         setErrorUpdatingPlaces({
-          message: error.message || "Failed to delete a place",
+          message: error.message || 'Failed to delete place.',
         });
       }
 
@@ -135,13 +123,13 @@ function App() {
         </p>
       </header>
       <main>
-        {error && <Error title="An error occurred" message={error.message} />}
+        {error && <Error title="An error occurred!" message={error.message} />}
         {!error && (
           <Places
             title="I'd like to visit ..."
             fallbackText="Select the places you would like to visit below."
             isLoading={isFetching}
-            loadingText={"Fetching user places..."}
+            loadingText="Fetching your places..."
             places={userPlaces}
             onSelectPlace={handleStartRemovePlace}
           />
